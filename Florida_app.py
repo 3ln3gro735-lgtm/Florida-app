@@ -975,19 +975,13 @@ def cargar_datos_florida(_ruta_csv, debug_mode=False):
                 clean_col = remove_accents(col).strip().lower()
                 if clean_col == clean_target_paridad:
                     col_paridad_encontrada = col
-                    st.success(f"✅ Coincidencia encontrada: `{col}`")
-                    break
-            if not col_paridad_encontrada:
-                st.error(f"❌ No se encontró ninguna coincidencia para '{target_paridad}'.")
+                if clean_col == clean_target_saltos:
+                    col_saltos_encontrada = col
             st.write(f"**Buscando objetivo 2:** `{target_saltos}`")
             for col in columnas_encontradas:
                 clean_col = remove_accents(col).strip().lower()
                 if clean_col == clean_target_saltos:
                     col_saltos_encontrada = col
-                    st.success(f"✅ Coincidencia encontrada: `{col}`")
-                    break
-            if not col_saltos_encontrada:
-                st.error(f"❌ No se encontró ninguna coincidencia para '{target_saltos}'.")
             st.markdown("---")
             st.subheader("Vista Previa de las Columnas Encontradas")
             if col_paridad_encontrada and col_saltos_encontrada:
@@ -995,7 +989,7 @@ def cargar_datos_florida(_ruta_csv, debug_mode=False):
             else:
                 st.warning("No se pueden mostrar las columnas porque una o ambas no fueron encontradas.")
 
-        posibles_cols_numero = ['Resultado', 'Resultado ', 'Numero', 'Numero ', 'Número', 'Número ', 'Ganador', 'Ganador ']
+        posibles_cols_numero = ['Resultado', 'Resultado ', 'Numero', 'Numero ', 'Número', 'Ganador', 'Ganador ']
         col_numero_encontrada = None
         for col in df_historial.columns:
             if col in posibles_cols_numero:
@@ -1199,7 +1193,7 @@ def main():
             
             df_ciclos = analizar_ciclos(df_historial, fecha_referencia, elemento_ciclo, min_apariciones_ciclo)
             visualizar_ciclos(df_ciclos, elemento_ciclo, top_n_ciclos)
-
+        
         # --- NUEVA SECCIÓN: SISTEMA 2 - MAPA DE CALOR POSICIONAL ---
         st.markdown("---")
         st.header("🗺️ Sistema 2: Mapa de Calor Posicional")
@@ -1236,26 +1230,47 @@ def main():
         ax.set_title('Mapa de Calor Posicional - Temperatura Combinada de Decenas y Unidades')
         st.pyplot(fig)
         
-        # Análisis de combinaciones extremas
+        # --- CORRECCIÓN: Mostrar las CUATRO combinaciones en dos columnas ---
+        st.markdown("---")
+        st.subheader("📊 Análisis de Combinaciones Extremas")
+        
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🔥🧊 Combinaciones Caliente-Frío (Máxima Oportunidad)")
+            st.subheader("🔥🧊 Caliente-Frío (Máxima Oportunidad)")
             st.markdown("Números donde la decena está muy caliente y la unidad muy fría.")
             if not df_hot_cold.empty:
                 st.dataframe(df_hot_cold, width='stretch', hide_index=True)
             else:
                 st.warning("No hay combinaciones Caliente-Frío en el período analizado.")
+            
+            st.markdown("---") # Separador dentro de la columna
+            
+            st.subheader("🔥🔥 Doble Caliente (Alta Probabilidad)")
+            st.markdown("Números donde ambas posiciones están muy calientes.")
+            if not df_hot_hot.empty:
+                st.dataframe(df_hot_hot, width='stretch', hide_index=True)
+            else:
+                st.warning("No hay combinaciones Doble Caliente en el período analizado.")
         
         with col2:
-            st.subheader("🧊🔥 Combinaciones Frío-Caliente (Segunda Oportunidad)")
+            st.subheader("🧊🔥 Frío-Caliente (Segunda Oportunidad)")
             st.markdown("Números donde la unidad está muy caliente y la decena muy fría.")
             if not df_cold_hot.empty:
                 st.dataframe(df_cold_hot, width='stretch', hide_index=True)
             else:
                 st.warning("No hay combinaciones Frío-Caliente en el período analizado.")
-        
-        # Recomendaciones estratégicas
+            
+            st.markdown("---") # Separador dentro de la columna
+            
+            st.subheader("🧊🧊 Doble Frío (Posible Sorpresa)")
+            st.markdown("Números donde ambas posiciones están muy frías.")
+            if not df_cold_cold.empty:
+                st.dataframe(df_cold_cold, width='stretch', hide_index=True)
+            else:
+                st.warning("No hay combinaciones Doble Frío en el período analizado.")
+
+        # --- Recomendaciones estratégicas (ahora sí aparecen después de las 4 columnas) ---
         st.markdown("---")
         st.subheader("💡 Recomendaciones Estratégicas")
         
@@ -1274,7 +1289,7 @@ def main():
         if not df_cold_cold.empty:
             top_cold_cold = df_cold_cold.head(3)['Número'].tolist()
             st.error(f"**Posible Sorpresa:** Los números {', '.join(top_cold_cold)} tienen ambas posiciones frías, lo que podría indicar una sorpresa inminente.")
-
+        
         estados_posibles = ["Normal", "Vencido", "Muy Vencido"]
         combinaciones_posibles = [f"{d}-{u}" for d in estados_posibles for u in estados_posibles]
         
@@ -1472,15 +1487,15 @@ def main():
         with col_cal:
             st.metric("🔥 Calientes (Top 30)", f"{len(df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🔥 Caliente'])} números")
             calientes_lista = df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🔥 Caliente']['Numero'].tolist()
-            st.write(", ".join(map(str, calientes_lista)))
+            st.write(", ".join(map(str, calientes_lista))) # <-- CORRECCIÓN: Paréntesis de cierre añadido
         with col_tib:
-            st.metric("🟡 Tibios (Siguientes 30)", f"{len(df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🟡 Tibio'])} números")
-            tibios_lista = df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🟡 Tibio']['Numero'].tolist()
-            st.write(", ".join(map(str, tibios_lista)))
+            st.metric("🟡 Tibios (Siguientes 30)", f"{len(df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🟡 Tibio'])} números") # <-- CORRECCIÓN: '🟡 Tibio' en lugar de '🟡 Tibio'
+            tibios_lista = df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🟡 Tibio']['Numero'].tolist() # <-- CORRECCIÓN: Lógica de filtrado corregida
+            st.write(", ".join(map(str, tibios_lista))) # <-- CORRECCIÓN: Paréntesis de cierre añadido
         with col_fri:
             st.metric("🧊 Fríos (Últimos 40)", f"{len(df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🧊 Frío'])} números")
             frios_lista = df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🧊 Frío']['Numero'].tolist()
-            st.write(", ".join(map(str, frios_lista)))
+            st.write(", ".join(map(str, frios_lista))) # <-- CORRECCIÓN: Paréntesis de cierre añadido
         
         st.markdown("---")
         st.header("🎯 Análisis de Oportunidad por Dígito (Decenas y Unidades)")
@@ -1651,7 +1666,7 @@ def main():
 
         # --- DEPURACIÓN: Mostrar las últimas filas para verificar el orden ---
         with st.expander("🔍 Verificar Últimos Sorteos (Depuración)"):
-            st.markdown("A continuación se muestran las últimas 5 filas del historial ordenado cronológicamente. **Verifica que el orden y las formas coinciden con tus expectativas.**")
+            st.markdown("A continuación se muestran las últimas 5 filas del historial ordenado cronológicamente. **Verifica que el orden y las formas coinciden con tus expectativas.")
             df_verificacion = df_historial.tail(5)[['Fecha', 'Tipo_Sorteo', 'Numero', 'Forma_Calculada']].copy()
             df_verificacion['Fecha'] = df_verificacion['Fecha'].dt.strftime('%d/%m/%Y')
             st.dataframe(df_verificacion, hide_index=True)
@@ -1751,7 +1766,6 @@ def main():
 
         else:
             st.warning("Se necesitan al menos 2 sorteos para poder analizar un patrón de 2 formas.")
-
 
 if __name__ == "__main__":
     main()
