@@ -580,7 +580,7 @@ def analizar_oportunidad_por_digito(df_historial, df_estados_completos, historic
     df_candidatos = pd.DataFrame(candidatos).sort_values(by='Puntuación Total', ascending=False).head(top_n_candidatos)
     df_candidatos['Numero'] = df_candidatos['Numero'].apply(lambda x: f"{x:02d}")
 
-    return df_oportunidad_decenas, df_oportunidad_unidades, df_candidatos
+    return df_oportunidad_decenas, df_oportunidad_unidades, df_candidatos, mapa_temperatura_decenas, mapa_temperatura_unidades
 
 # --- FUNCIÓN PARA BUSCAR PATRONES DE 3 FORMAS ---
 def buscar_patron_formas(df_historial, patron_formas):
@@ -870,6 +870,77 @@ def visualizar_ciclos(df_ciclos, elemento='numero', top_n=10):
           la regularidad y la frecuencia de apariciones.
         """)
 
+# --- NUEVAS FUNCIONES PARA EL SISTEMA 2: MAPA DE CALOR POSICIONAL ---
+
+def crear_mapa_calor_posicional(mapa_temp_decenas, mapa_temp_unidades):
+    """
+    Crea una matriz 10x10 con puntuaciones basadas en la temperatura combinada de decenas y unidades.
+    """
+    # Asignar valores numéricos a la temperatura
+    temp_valores = {'🔥 Caliente': 3, '🟡 Tibio': 2, '🧊 Frío': 1}
+    
+    # Crear matriz 10x10 (Unidades vs Decenas)
+    matriz_calor = np.zeros((10, 10))
+    
+    for unidad in range(10):
+        for decena in range(10):
+            temp_dec = mapa_temp_decenas.get(decena, '🟡 Tibio')
+            temp_uni = mapa_temp_unidades.get(unidad, '🟡 Tibio')
+            
+            # Puntuación combinada (ej: 31 para Caliente-Frío, 13 para Frío-Caliente)
+            puntuacion = temp_valores[temp_dec] * 10 + temp_valores[temp_uni]
+            matriz_calor[unidad, decena] = puntuacion
+            
+    return pd.DataFrame(matriz_calor, index=range(10), columns=range(10))
+
+def analizar_combinaciones_extremas(mapa_temp_decenas, mapa_temp_unidades, df_estados_completos):
+    """
+    Analiza y clasifica los números según sus combinaciones de temperatura posicional.
+    """
+    hot_cold, cold_hot, hot_hot, cold_cold = [], [], [], []
+    puntuaciones_desequilibrio = {}
+
+    for num in range(100):
+        decena = num // 10
+        unidad = num % 10
+        
+        temp_dec = mapa_temp_decenas.get(decena, '🟡 Tibio')
+        temp_uni = mapa_temp_unidades.get(unidad, '🟡 Tibio')
+        
+        # Calcular puntuación de desequilibrio (máxima para Hot-Cold y Cold-Hot)
+        temp_valores = {'🔥 Caliente': 3, '🟡 Tibio': 2, '🧊 Frío': 1}
+        score_dec = temp_valores[temp_dec]
+        score_uni = temp_valores[temp_uni]
+        puntuacion_desequilibrio = abs(score_dec - score_uni)
+        
+        puntuaciones_desequilibrio[num] = puntuacion_desequilibrio
+        
+        num_str = f"{num:02d}"
+        
+        if temp_dec == '🔥 Caliente' and temp_uni == '🧊 Frío':
+            hot_cold.append(num_str)
+        elif temp_dec == '🧊 Frío' and temp_uni == '🔥 Caliente':
+            cold_hot.append(num_str)
+        elif temp_dec == '🔥 Caliente' and temp_uni == '🔥 Caliente':
+            hot_hot.append(num_str)
+        elif temp_dec == '🧊 Frío' and temp_uni == '🧊 Frío':
+            cold_cold.append(num_str)
+
+    # Ordenar listas por puntuación de desequilibrio (mayor a menor)
+    hot_cold.sort(key=lambda x: puntuaciones_desequilibrio[int(x)], reverse=True)
+    cold_hot.sort(key=lambda x: puntuaciones_desequilibrio[int(x)], reverse=True)
+    hot_hot.sort(key=lambda x: puntuaciones_desequilibrio[int(x)], reverse=True)
+    cold_cold.sort(key=lambda x: puntuaciones_desequilibrio[int(x)], reverse=True)
+    
+    # Crear DataFrames
+    df_hot_cold = pd.DataFrame({'Número': hot_cold, 'Puntuación Desequilibrio': [puntuaciones_desequilibrio[int(x)] for x in hot_cold]})
+    df_cold_hot = pd.DataFrame({'Número': cold_hot, 'Puntuación Desequilibrio': [puntuaciones_desequilibrio[int(x)] for x in cold_hot]})
+    df_hot_hot = pd.DataFrame({'Número': hot_hot, 'Puntuación Desequilibrio': [puntuaciones_desequilibrio[int(x)] for x in hot_hot]})
+    df_cold_cold = pd.DataFrame({'Número': cold_cold, 'Puntuación Desequilibrio': [puntuaciones_desequilibrio[int(x)] for x in cold_cold]})
+    
+    return df_hot_cold, df_cold_hot, df_hot_hot, df_cold_cold
+
+
 # --- CARGA Y PROCESAMIENTO UNIFICADO DE DATOS ---
 @st.cache_resource
 def cargar_datos_florida(_ruta_csv, debug_mode=False):
@@ -1111,7 +1182,7 @@ def main():
         fecha_fin_rango_safe = pd.to_datetime(fecha_fin_rango) if fecha_fin_rango else None
         
         # --- MODIFICACIÓN: Pasar el valor del slider a la función ---
-        df_oportunidad_decenas, df_oportunidad_unidades, top_candidatos = analizar_oportunidad_por_digito(
+        df_oportunidad_decenas, df_oportunidad_unidades, top_candidatos, mapa_temp_decenas, mapa_temp_unidades = analizar_oportunidad_por_digito(
             df_historial, df_estados_completos, historicos_decena, historicos_unidad, 
             modo_temperatura, fecha_inicio_rango_safe, fecha_fin_rango_safe,
             top_n_candidatos
@@ -1128,7 +1199,82 @@ def main():
             
             df_ciclos = analizar_ciclos(df_historial, fecha_referencia, elemento_ciclo, min_apariciones_ciclo)
             visualizar_ciclos(df_ciclos, elemento_ciclo, top_n_ciclos)
+
+        # --- NUEVA SECCIÓN: SISTEMA 2 - MAPA DE CALOR POSICIONAL ---
+        st.markdown("---")
+        st.header("🗺️ Sistema 2: Mapa de Calor Posicional")
+        st.markdown("""
+        Este sistema analiza la "temperatura" de cada posición (Decenas y Unidades) por separado 
+        para encontrar combinaciones extremas y oportunidades de desequilibrio.
+        """)
         
+        # Crear el mapa de calor posicional
+        df_mapa_calor = crear_mapa_calor_posicional(mapa_temp_decenas, mapa_temp_unidades)
+        
+        # Analizar combinaciones extremas
+        df_hot_cold, df_cold_hot, df_hot_hot, df_cold_cold = analizar_combinaciones_extremas(mapa_temp_decenas, mapa_temp_unidades, df_estados_completos)
+        
+        # Visualización del mapa de calor
+        st.subheader("Mapa de Calor de Combinaciones Posicionales")
+        st.markdown("""
+        **Cómo leer este mapa:**
+        - **Eje X (horizontal):** Dígito de la Decena (0-9)
+        - **Eje Y (vertical):** Dígito de la Unidad (0-9)
+        - **Colores:** Representan la combinación de temperatura. Los colores más intensos indican un mayor desequilibrio.
+        """)
+        
+        # Crear un mapa de colores personalizado
+        colors = ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffcc", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"]
+        cmap = sns.color_palette("RdYlGn_r", as_cmap=True)
+        
+        fig, ax = plt.subplots(figsize=(12, 10))
+        sns.heatmap(df_mapa_calor, annot=True, fmt=".0f", cmap=cmap, center=22, 
+                   xticklabels=range(10), yticklabels=range(10),
+                   cbar_kws={'label': 'Puntuación de Temperatura Combinada'})
+        ax.set_xlabel('Dígito de la Decena')
+        ax.set_ylabel('Dígito de la Unidad')
+        ax.set_title('Mapa de Calor Posicional - Temperatura Combinada de Decenas y Unidades')
+        st.pyplot(fig)
+        
+        # Análisis de combinaciones extremas
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🔥🧊 Combinaciones Caliente-Frío (Máxima Oportunidad)")
+            st.markdown("Números donde la decena está muy caliente y la unidad muy fría.")
+            if not df_hot_cold.empty:
+                st.dataframe(df_hot_cold, width='stretch', hide_index=True)
+            else:
+                st.warning("No hay combinaciones Caliente-Frío en el período analizado.")
+        
+        with col2:
+            st.subheader("🧊🔥 Combinaciones Frío-Caliente (Segunda Oportunidad)")
+            st.markdown("Números donde la unidad está muy caliente y la decena muy fría.")
+            if not df_cold_hot.empty:
+                st.dataframe(df_cold_hot, width='stretch', hide_index=True)
+            else:
+                st.warning("No hay combinaciones Frío-Caliente en el período analizado.")
+        
+        # Recomendaciones estratégicas
+        st.markdown("---")
+        st.subheader("💡 Recomendaciones Estratégicas")
+        
+        if not df_hot_cold.empty:
+            top_hot_cold = df_hot_cold.head(3)['Número'].tolist()
+            st.success(f"**Oportunidad Principal:** Considera los números {', '.join(top_hot_cold)}. Tienen una alta probabilidad de corrección (la parte fría podría 'calentarse').")
+        
+        if not df_cold_hot.empty:
+            top_cold_hot = df_cold_hot.head(3)['Número'].tolist()
+            st.info(f"**Oportunidad Secundaria:** Los números {', '.join(top_cold_hot)} también son candidatos interesantes por su desequilibrio inverso.")
+        
+        if not df_hot_hot.empty:
+            top_hot_hot = df_hot_hot.head(3)['Número'].tolist()
+            st.warning(f"**Alta Probabilidad:** Los números {', '.join(top_hot_hot)} tienen ambas posiciones calientes, lo que indica alta probabilidad de aparición.")
+        
+        if not df_cold_cold.empty:
+            top_cold_cold = df_cold_cold.head(3)['Número'].tolist()
+            st.error(f"**Posible Sorpresa:** Los números {', '.join(top_cold_cold)} tienen ambas posiciones frías, lo que podría indicar una sorpresa inminente.")
+
         estados_posibles = ["Normal", "Vencido", "Muy Vencido"]
         combinaciones_posibles = [f"{d}-{u}" for d in estados_posibles for u in estados_posibles]
         
