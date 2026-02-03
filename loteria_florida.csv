@@ -1072,21 +1072,22 @@ Fecha;Sorteo;Resultado ;Decena;Unidad;Paridad D;Altura D;Forma D;Paridad U;Altur
 23/1/2026;N;10;1;0;Impar;Bajo;Recto;Par;Bajo;Cerrado;1;2;Normal;Normal;Normal-Normal;RC;Normal;1;Vencida;7;1;Viernes;23/1/2026;N;10;BajoBajo-Impar-Par;6;Normal;BajoBajo-Impar-Par;6;Normal
 24/1/2026;T;61;6;1;Par;Alto;Cerrado;Impar;Bajo;Recto;5;6;Vencido;Vencido;Vencido-Vencido;CR;Normal;7;Normal;2;3;Sabado;24/1/2026;T;61;AltoBajo-Par-Impar;5;Normal;AltoBajo-Par-Impar;5;Normal
 24/1/2026;N;62;6;2;Par;Alto;Cerrado;Par;Bajo;Abierto;0;6;Normal;Vencido;Normal-Vencido;CA;Normal;8;Vencida;6;1;Sábado;24/1/2026;N;62;AltoBajo-Par-Par;3;Normal;AltoBajo-Par-Par;3;Normal
-25/1/2026;T;84;8;4;Par;Alto;Cerrado;Par;Bajo;Recto;4;4;Normal;Normal;Normal-Normal;CR;Normal;3;Normal;2;1;Domingo;25/1/2026;T;84;AltoBajo-Par-Par;1;Normal;AltoBajo-Par-Par;1;Normal
-25/1/2026;N;84;8;4;Par;Alto;Cerrado;Par;Bajo;Recto;0;0;Normal;Normal;Normal-Normal;CR;Normal;3;Normal;0;0;Domingo;25/1/2026;N;84;AltoBajo-Par-Par;0;Normal;AltoBajo-Par-Par;0;Normal
+25/1/2026;T;84;8;4;Par;Alto;Cerrado;Par;Bajo;Recto;4;4;Normal;Normal;Normal-Normal;CR;Normal;3;Normal;2;1;Domingo ;25/1/2026;T;84;AltoBajo-Par-Par;1;Normal;AltoBajo-Par-Par;1;Normal
+25/1/2026;N;84;8;4;Par;Alto;Cerrado;Par;Bajo;Recto;0;0;Normal;Normal;Normal-Normal;CR;Normal;3;Normal;0;0;Domingo ;25/1/2026;N;84;AltoBajo-Par-Par;0;Normal;AltoBajo-Par-Par;0;Normal
 26/1/2026;T;60;6;0;Par;Alto;Cerrado;Par;Bajo;Cerrado;2;3;Normal;Normal;Normal-Normal;CC;Muy Vencido;6;Vencida;6;6;Lunes;26/1/2026;T;60;AltoBajo-Par-Par;1;Normal;AltoBajo-Par-Par;1;Normal
-26/1/2026;N;20;2;0;Par;Bajo;Abierto;Par;Bajo;Cerrado;15;0;Muy Vencido;Normal;Muy Vencido-Normal;AC;Vencido;2;Muy Vencida;8;5;Martes;26/1/2026;N;20;BajoBajo-Par-Par;10;Muy Vencido;BajoBajo-Par-Par;10;Muy Vencido
+26/1/2026;N;20;2;0;Par;Bajo;Abierto;Par;Bajo;Cerrado;15;0;Muy Vencido;Normal;Muy Vencido-Normal;AC;Vencido;2;Muy Vencida;8;5;Lunes;26/1/2026;N;20;BajoBajo-Par-Par;10;Muy Vencido;BajoBajo-Par-Par;10;Muy Vencido
 27/1/2026;T;5;0;5;Par;Bajo;Cerrado;Impar;Alto;Abierto;4;26;Vencido;Muy Vencido;Vencido-Muy Vencido;CA;Normal;5;Vencida;6;3;Martes;27/1/2026;T;5;BajoAlto-Par-Impar;12;Muy Vencido;BajoAlto-Par-Impar;12;Muy Vencido
 27/1/2026;N;22;2;2;Par;Bajo;Abierto;Par;Bajo;Abierto;1;3;Normal;Normal;Normal-Normal;AA;Muy Vencido;4;Muy Vencida;12;16;Martes;27/1/2026;N;22;BajoBajo-Par-Par;1;Normal;BajoBajo-Par-Par;1;Normal
 28/1/2026;T;87;8;7;Par;Alto;Cerrado;Impar;Alto;Recto;3;13;Normal;Muy Vencido;Normal-Muy Vencido;CR;Normal;6;Normal;2;3;Miercoles;28/1/2026;T;87;AltoAlto-Par-Impar;17;Muy Vencido;AltoAlto-Par-Impar;17;Muy Vencido
 28/1/2026;N;56;5;6;Impar;Alto;Abierto;Par;Alto;Cerrado;7;6;Vencido;Vencido;Vencido-Vencido;AC;Normal;2;Normal;2;2;Miercoles;28/1/2026;N;56;AltoAlto-Impar-Par;16;Muy Vencido;AltoAlto-Impar-Par;16;Muy Vencido
 29/1/2026;T;35;3;5;Impar;Bajo;Abierto;Impar;Alto;Abierto;22;2;Muy Vencido;Normal;Muy Vencido-Normal;AA;Normal;8;Vencida;5;2;Jueves;29/1/2026;T;35;BajoAlto-Impar-Impar;40;Muy Vencido;BajoAlto-Impar-Impar;40;Muy Vencido
 29/1/2026;N;80;8;0;Par;Alto;Cerrado;Par;Bajo;Cerrado;1;3;Normal;Normal;Normal-Normal;CC;Vencido;8;Normal;0;3;Jueves;29/1/2026;N;80;AltoBajo-Par-Par;3;Normal;AltoBajo-Par-Par;3;Normal
-30/1/2026;T;64;6;4;Par;Alto;Cerrado;Par;Bajo;Recto;4;5;Normal;Vencido;Normal-Vencido;CR;Normal;1;Vencida;7;2;Viernes ;30/1/2026;T;64;AltoBajo-Par-Par;1;Normal;AltoBajo-Par-Par;1;Normal
-30/1/2026;N;24;2;4;Par;Bajo;Abierto;Par;Bajo;Recto;3;0;Normal;Normal;Normal-Normal;AR;Muy Vencido;6;Normal;2;23;Sábado;30/1/2026;N;24;;;;BajoBajo-Par-Par;3;Normal
-31/1/2026;T;85;8;5;Par;Alto;Cerrado;Impar;Alto;Abierto;2;2;Normal;Normal;Normal-Normal;CA;Normal;4;Normal;4;4;Domingo;31/1/2026;T;85;;;;AltoAlto-Par-Impar;3;Normal
-31/1/2026;N;50;5;0;Impar;Alto;Abierto;Par;Bajo;Cerrado;3;2;Normal;Normal;Normal-Normal;AC;Normal;5;Normal;4;3;Lunes;31/1/2026;N;50;;;;AltoBajo-Impar-Par;10;Muy Vencido
-1/2/2026;T;33;3;3;Impar;Bajo;Abierto;Impar;Bajo;Abierto;3;9;Normal;Muy Vencido;Normal-Muy Vencido;AA;Normal;6;Normal;2;3;Martes;1/2/2026;T;33;;;;BajoBajo-Impar-Impar;14;Muy Vencido
-1/2/2026;N;42;4;2;Par;Bajo;Recto;Par;Bajo;Abierto;12;5;Muy Vencido;Normal;Muy Vencido-Normal;RA;Muy Vencido;6;Normal;0;12;Miércoles;1/2/2026;N;42;;;;BajoBajo-Par-Par;2;Normal
-2/2/2026;T;75;7;5;Impar;Alto;Recto;Impar;Alto;Abierto;17;2;Muy Vencido;Normal;Muy Vencido-Normal;RA;Normal;3;Muy Vencida;8;1;Jueves;2/2/2026;T;75;;;;AltoAlto-Impar-Impar;14;Muy Vencido
-2/2/2026;N;02;0;2;Par;Bajo;Cerrado;Par;Bajo;Abierto;6;1;Muy Vencido;Normal;Muy Vencido-Normal;CA;Normal;2;Vencida;5;2;Viernes;2/2/2026;N;02;;;;BajoBajo-Par-Par;1;Normal
+30/1/2026;T;64;6;4;Par;Alto;Cerrado;Par;Bajo;Recto;4;5;Normal;Vencido;Normal-Vencido;CR;Normal;1;Vencida;7;2;Viernes;30/1/2026;T;64;AltoBajo-Par-Par;1;Normal;AltoBajo-Par-Par;1;Normal
+30/1/2026;N;24;2;4;Par;Bajo;Abierto;Par;Bajo;Recto;3;0;Normal;Normal;Normal-Normal;AR;Muy Vencido;6;Normal;2;23;Viernes;30/1/2026;N;24;;;;BajoBajo-Par-Par;3;Normal
+31/1/2026;T;85;8;5;Par;Alto;Cerrado;Impar;Alto;Abierto;2;2;Normal;Normal;Normal-Normal;CA;Normal;4;Normal;4;4;Sabado;31/1/2026;T;85;;;;AltoAlto-Par-Impar;3;Normal
+31/1/2026;N;50;5;0;Impar;Alto;Abierto;Par;Bajo;Cerrado;3;2;Normal;Normal;Normal-Normal;AC;Normal;5;Normal;4;3;Sábado;31/1/2026;N;50;;;;AltoBajo-Impar-Par;10;Muy Vencido
+1/2/2026;T;33;3;3;Impar;Bajo;Abierto;Impar;Bajo;Abierto;3;9;Normal;Muy Vencido;Normal-Muy Vencido;AA;Normal;6;Normal;2;3;Domingo ;1/2/2026;T;33;;;;BajoBajo-Impar-Impar;14;Muy Vencido
+1/2/2026;N;42;4;2;Par;Bajo;Recto;Par;Bajo;Abierto;12;5;Muy Vencido;Normal;Muy Vencido-Normal;RA;Muy Vencido;6;Normal;0;12;Domingo ;1/2/2026;N;42;;;;BajoBajo-Par-Par;2;Normal
+2/2/2026;T;75;7;5;Impar;Alto;Recto;Impar;Alto;Abierto;17;2;Muy Vencido;Normal;Muy Vencido-Normal;RA;Normal;3;Muy Vencida;8;1;Lunes;2/2/2026;T;75;;;;AltoAlto-Impar-Impar;14;Muy Vencido
+2/2/2026;N;2;0;2;Par;Bajo;Cerrado;Par;Bajo;Abierto;6;1;Muy Vencido;Normal;Muy Vencido-Normal;CA;Normal;2;Vencida;5;2;Lunes;2/2/2026;N;2;;;;BajoBajo-Par-Par;1;Normal
+3/2/2026;T;52;5;2;Impar;Alto;Abierto;Par;Bajo;Abierto;3;1;Normal;Normal;Normal-Normal;AA;Normal;7;Muy Vencida;10;2;Sábado;3/2/2026;T;52;;;;AltoBajo-Impar-Par;3;Normal
