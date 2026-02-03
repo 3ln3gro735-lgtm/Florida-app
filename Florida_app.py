@@ -7,6 +7,8 @@ import os
 import traceback
 from collections import defaultdict, Counter
 import unicodedata
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # --- CONFIGURACIÓN DE LA RUTA_ABSOLUTA ---
 # CAMBIO: Ruta actualizada para la lotería de Florida (relativa para la nube)
@@ -650,6 +652,223 @@ def buscar_patron_formas_2(df_historial, patron_formas):
     
     return df_resultados
 
+# --- NUEVA FUNCIÓN PARA EL ANÁLISIS DE CICLOS (SISTEMA 1) ---
+def analizar_ciclos(df_historial, fecha_referencia, elemento='numero', min_apariciones=5):
+    """
+    Analiza los ciclos de aparición de números, decenas, unidades o formas.
+    Identifica patrones cíclicos y calcula el estado del ciclo actual.
+    
+    Parámetros:
+    - df_historial: DataFrame con el historial de sorteos
+    - fecha_referencia: Fecha hasta la cual se realiza el análisis
+    - elemento: Tipo de elemento a analizar ('numero', 'decena', 'unidad', 'forma')
+    - min_apariciones: Mínimo de apariciones para considerar un elemento en el análisis
+    
+    Retorna:
+    - DataFrame con información de ciclos para cada elemento
+    """
+    st.info(f"Analizando ciclos de {elemento}s hasta la fecha: {fecha_referencia.strftime('%d/%m/%Y')}")
+    
+    # Filtrar historial hasta la fecha de referencia
+    df_historial_filtrado = df_historial[df_historial['Fecha'] < fecha_referencia].copy()
+    if df_historial_filtrado.empty:
+        return pd.DataFrame()
+    
+    # Preparar datos según el tipo de elemento
+    if elemento == 'numero':
+        df_elementos = df_historial_filtrado.copy()
+        df_elementos['Elemento'] = df_elementos['Numero']
+        elementos_posibles = range(100)
+    elif elemento == 'decena':
+        df_elementos = df_historial_filtrado.copy()
+        df_elementos['Elemento'] = df_elementos['Numero'] // 10
+        elementos_posibles = range(10)
+    elif elemento == 'unidad':
+        df_elementos = df_historial_filtrado.copy()
+        df_elementos['Elemento'] = df_elementos['Numero'] % 10
+        elementos_posibles = range(10)
+    elif elemento == 'forma':
+        df_elementos = df_historial_filtrado.copy()
+        df_elementos['Elemento'] = df_elementos['Numero'].apply(calcular_forma_desde_numero)
+        elementos_posibles = df_elementos['Elemento'].unique()
+    else:
+        st.error(f"Tipo de elemento no válido: {elemento}")
+        return pd.DataFrame()
+    
+    # Analizar ciclos para cada elemento
+    resultados = []
+    
+    for elem in elementos_posibles:
+        # Filtrar apariciones del elemento
+        apariciones = df_elementos[df_elementos['Elemento'] == elem]['Fecha'].sort_values()
+        
+        # Si hay suficientes apariciones para analizar
+        if len(apariciones) >= min_apariciones:
+            # Calcular gaps (días entre apariciones consecutivas)
+            gaps = apariciones.diff().dt.days.dropna()
+            
+            if not gaps.empty:
+                # Estadísticas básicas de los gaps
+                gap_promedio = gaps.mean()
+                gap_mediana = gaps.median()
+                gap_min = gaps.min()
+                gap_max = gaps.max()
+                gap_std = gaps.std()
+                
+                # Calcular el gap actual (días desde la última aparición)
+                ultima_aparicion = apariciones.iloc[-1]
+                gap_actual = (fecha_referencia - ultima_aparicion).days
+                
+                # Determinar si el elemento sigue un patrón cíclico
+                # Usamos el coeficiente de variación (CV) para medir la regularidad
+                cv = gap_std / gap_promedio if gap_promedio > 0 else float('inf')
+                es_ciclico = cv < 0.5  # Si CV < 0.5, consideramos que hay un patrón cíclico
+                
+                # Calcular el estado del ciclo
+                if es_ciclico:
+                    # Calcular qué tan cerca estamos del próximo ciclo esperado
+                    # Si gap_actual está cerca del gap_promedio, el ciclo está "en punto"
+                    # Si gap_actual > gap_promedio, el ciclo está "vencido"
+                    proporcion_ciclo = gap_actual / gap_promedio
+                    
+                    if proporcion_ciclo < 0.8:
+                        estado_ciclo = "Temprano"
+                    elif proporcion_ciclo < 1.2:
+                        estado_ciclo = "En Punto"
+                    elif proporcion_ciclo < 1.5:
+                        estado_ciclo = "Vencido"
+                    else:
+                        estado_ciclo = "Muy Vencido"
+                else:
+                    # Si no es cíclico, usamos el estado normal
+                    estado_ciclo = "No Cíclico"
+                
+                # Añadir a los resultados
+                resultados.append({
+                    'Elemento': elem,
+                    'Total Apariciones': len(apariciones),
+                    'Gap Promedio (días)': round(gap_promedio, 1),
+                    'Gap Mediana (días)': round(gap_mediana, 1),
+                    'Gap Mínimo (días)': gap_min,
+                    'Gap Máximo (días)': gap_max,
+                    'Desviación Estándar': round(gap_std, 1),
+                    'Coeficiente Variación': round(cv, 2),
+                    'Es Cíclico': es_ciclico,
+                    'Última Aparición': ultima_aparicion.strftime('%d/%m/%Y'),
+                    'Gap Actual (días)': gap_actual,
+                    'Proporción Ciclo': round(proporcion_ciclo, 2) if es_ciclico else None,
+                    'Estado Ciclo': estado_ciclo
+                })
+    
+    # Crear DataFrame con los resultados
+    df_ciclos = pd.DataFrame(resultados)
+    
+    if not df_ciclos.empty:
+        # Ordenar por los elementos más cíclicos y más vencidos
+        df_ciclos = df_ciclos.sort_values(by=['Es Cíclico', 'Proporción Ciclo'], ascending=[False, False])
+        
+        # Añadir columna de puntuación de ciclo
+        def calcular_puntuacion_ciclo(row):
+            if not row['Es Cíclico']:
+                return 0
+            
+            # Puntuación base por estar en un estado de ciclo
+            puntuacion_base = {
+                'Temprano': 10,
+                'En Punto': 30,
+                'Vencido': 70,
+                'Muy Vencido': 100
+            }.get(row['Estado Ciclo'], 0)
+            
+            # Ajuste basado en la regularidad del ciclo (menor CV = más regular = más confiable)
+            ajuste_regularidad = max(0, 50 - row['Coeficiente Variación'] * 100)
+            
+            # Ajuste basado en la frecuencia (más apariciones = más confiable)
+            ajuste_frecuencia = min(50, row['Total Apariciones'] / 2)
+            
+            return puntuacion_base + ajuste_regularidad + ajuste_frecuencia
+        
+        df_ciclos['Puntuación Ciclo'] = df_ciclos.apply(calcular_puntuacion_ciclo, axis=1)
+        
+        # Ordenar por puntuación de ciclo
+        df_ciclos = df_ciclos.sort_values(by='Puntuación Ciclo', ascending=False)
+    
+    return df_ciclos
+
+# --- FUNCIÓN PARA VISUALIZAR CICLOS ---
+def visualizar_ciclos(df_ciclos, elemento='numero', top_n=10):
+    """
+    Visualiza los ciclos más prometedores para un tipo de elemento.
+    
+    Parámetros:
+    - df_ciclos: DataFrame con información de ciclos
+    - elemento: Tipo de elemento analizado
+    - top_n: Número de elementos a visualizar
+    """
+    if df_ciclos.empty:
+        st.warning(f"No hay datos de ciclos para {elemento}s.")
+        return
+    
+    # Filtrar solo los elementos cíclicos
+    df_ciclicos = df_ciclos[df_ciclos['Es Cíclico']].head(top_n)
+    
+    if df_ciclicos.empty:
+        st.warning(f"No se encontraron {elemento}s con patrones cíclicos claros.")
+        return
+    
+    st.subheader(f"Top {top_n} {elemento}s con Patrones Cíclicos")
+    
+    # Tabla con los ciclos más prometedores
+    columnas_mostrar = [
+        'Elemento', 'Total Apariciones', 'Gap Promedio (días)', 
+        'Gap Actual (días)', 'Proporción Ciclo', 'Estado Ciclo', 'Puntuación Ciclo'
+    ]
+    
+    st.dataframe(df_ciclicos[columnas_mostrar], width='stretch')
+    
+    # Visualización gráfica
+    if len(df_ciclicos) > 0:
+        fig, ax = plt.subplots(figsize=(12, 6))
+        
+        # Ordenar por gap promedio
+        df_plot = df_ciclicos.sort_values('Gap Promedio (días)')
+        
+        # Crear gráfico de barras para gap promedio vs gap actual
+        x = np.arange(len(df_plot))
+        width = 0.35
+        
+        ax.bar(x - width/2, df_plot['Gap Promedio (días)'], width, label='Gap Promedio')
+        ax.bar(x + width/2, df_plot['Gap Actual (días)'], width, label='Gap Actual')
+        
+        # Añadir etiquetas con el estado del ciclo
+        for i, row in df_plot.iterrows():
+            idx = df_plot.index.get_loc(i)
+            ax.text(idx, row['Gap Actual (días)'] + 0.5, row['Estado Ciclo'], 
+                   ha='center', va='bottom', fontsize=8)
+        
+        ax.set_xlabel(f'{elemento.capitalize()}s')
+        ax.set_ylabel('Días')
+        ax.set_title(f'Análisis de Ciclos - {elemento.capitalize()}s')
+        ax.set_xticks(x)
+        ax.set_xticklabels(df_plot['Elemento'])
+        ax.legend()
+        
+        st.pyplot(fig)
+        
+        # Explicación de los resultados
+        st.markdown("""
+        ### Interpretación de los Resultados
+        
+        - **Gap Promedio**: Número promedio de días entre apariciones consecutivas.
+        - **Gap Actual**: Días transcurridos desde la última aparición.
+        - **Proporción Ciclo**: Relación entre Gap Actual y Gap Promedio.
+          - < 0.8: El ciclo está "Temprano"
+          - 0.8-1.2: El ciclo está "En Punto"
+          - 1.2-1.5: El ciclo está "Vencido"
+          - > 1.5: El ciclo está "Muy Vencido"
+        - **Puntuación Ciclo**: Puntuación combinada que considera el estado del ciclo, 
+          la regularidad y la frecuencia de apariciones.
+        """)
 
 # --- CARGA Y PROCESAMIENTO UNIFICADO DE DATOS ---
 @st.cache_resource
@@ -814,7 +1033,7 @@ def main():
     
     fecha_inicio_rango, fecha_fin_rango = None, None
     if modo_temperatura == "Personalizado por Rango":
-        st.sidebar.markdown("**Selecciona el rango de fechas (Almanaque):**")
+        st.sidebar.markdown("**Selecciona el rango de fechas (AlMANAQUE):**")
         fecha_inicio_rango = st.sidebar.date_input("Fecha de Inicio:", value=fecha_referencia - pd.Timedelta(days=30), format="DD/MM/YYYY")
         fecha_fin_rango = st.sidebar.date_input("Fecha de Fin:", value=fecha_referencia - pd.Timedelta(days=1), format="DD/MM/YYYY")
         if fecha_inicio_rango > fecha_fin_rango:
@@ -824,6 +1043,25 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.subheader("🏆 Análisis de Top Números")
     top_n_candidatos = st.slider("Top N de Números Candidatos a mostrar:", min_value=1, max_value=20, value=5, step=1)
+
+    # --- NUEVO SELECTOR PARA ANÁLISIS DE CICLOS ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🔄 Análisis de Ciclos")
+    activar_analisis_ciclos = st.sidebar.checkbox("Activar Análisis de Ciclos", value=False)
+    
+    if activar_analisis_ciclos:
+        elemento_ciclo = st.sidebar.selectbox(
+            "Tipo de elemento para análisis de ciclos:",
+            ["numero", "decena", "unidad", "forma"]
+        )
+        min_apariciones_ciclo = st.sidebar.slider(
+            "Mínimo de apariciones para considerar en el análisis:",
+            min_value=3, max_value=20, value=5, step=1
+        )
+        top_n_ciclos = st.sidebar.slider(
+            "Top N de elementos cíclicos a mostrar:",
+            min_value=5, max_value=30, value=10, step=1
+        )
 
     st.sidebar.markdown("---")
     if st.sidebar.button("🔄 Forzar Recarga de Datos"):
@@ -878,6 +1116,18 @@ def main():
             modo_temperatura, fecha_inicio_rango_safe, fecha_fin_rango_safe,
             top_n_candidatos
         )
+        
+        # --- NUEVO: ANÁLISIS DE CICLOS (SI ESTÁ ACTIVADO) ---
+        if activar_analisis_ciclos:
+            st.markdown("---")
+            st.header("🔄 Análisis de Ciclos")
+            st.markdown("""
+            Este análisis busca patrones cíclicos en la aparición de los elementos seleccionados. 
+            Identifica elementos que siguen ritmos predecibles y calcula su estado actual del ciclo.
+            """)
+            
+            df_ciclos = analizar_ciclos(df_historial, fecha_referencia, elemento_ciclo, min_apariciones_ciclo)
+            visualizar_ciclos(df_ciclos, elemento_ciclo, top_n_ciclos)
         
         estados_posibles = ["Normal", "Vencido", "Muy Vencido"]
         combinaciones_posibles = [f"{d}-{u}" for d in estados_posibles for u in estados_posibles]
@@ -1155,7 +1405,7 @@ def main():
                 estados_paridad_posibles = sorted(df_estados_completos['Estado_Paridad'].unique())
                 default_estados_paridad = st.session_state.get('estados_paridad_debidos_act', [])
                 estados_paridad_seleccionados = st.multiselect(
-                    "Selecciona Estados de Paridad:", 
+                    "Seleccionar Estados de Paridad:", 
                     options=estados_paridad_posibles, 
                     default=default_estados_paridad
                 )
