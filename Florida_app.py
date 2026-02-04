@@ -940,6 +940,158 @@ def analizar_combinaciones_extremas(mapa_temp_decenas, mapa_temp_unidades, df_es
     
     return df_hot_cold, df_cold_hot, df_hot_hot, df_cold_cold
 
+# --- NUEVA FUNCIÓN PARA EL MODELO PREDICTIVO BASADO EN COINCIDENCIAS ---
+def analizar_coincidencias_ponderadas(df_clasificacion_general, calientes_con_oportunidad, 
+                                   resultado_final, numeros_por_paridad, df_estados_completos,
+                                   mapa_temp_decenas, mapa_temp_unidades,
+                                   peso_temperatura, peso_oportunidad, peso_estados, 
+                                   peso_paridad, peso_extremos, top_n=20):
+    """
+    Versión que permite ponderar cada análisis según la configuración del usuario.
+    """
+    # Crear un DataFrame base con todos los números (00-99)
+    df_coincidencias = pd.DataFrame({'Numero': [f"{i:02d}" for i in range(100)]})
+    df_coincidencias['Numero_int'] = range(100)  # Para operaciones numéricas
+    
+    # Inicializar columnas de puntuación
+    df_coincidencias['Puntuación Total'] = 0
+    df_coincidencias['Coincidencias'] = 0
+    df_coincidencias['Análisis que coinciden'] = ""
+    
+    # 1. Análisis de Temperatura (Mapa de Calor)
+    calientes = df_clasificacion_general[df_clasificacion_general['Temperatura'] == '🔥 Caliente']['Numero'].tolist()
+    df_coincidencias.loc[df_coincidencias['Numero_int'].isin(calientes), 'Puntuación Total'] += peso_temperatura
+    df_coincidencias.loc[df_coincidencias['Numero_int'].isin(calientes), 'Coincidencias'] += 1
+    df_coincidencias.loc[df_coincidencias['Numero_int'].isin(calientes), 'Análisis que coinciden'] += "Temperatura, "
+    
+    # 2. Números Calientes con Oportunidad
+    if not calientes_con_oportunidad.empty:
+        numeros_oportunidad = calientes_con_oportunidad['Numero'].tolist()
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_oportunidad), 'Puntuación Total'] += peso_oportunidad
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_oportunidad), 'Coincidencias'] += 1
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_oportunidad), 'Análisis que coinciden'] += "Oportunidad, "
+    
+    # 3. Números Calientes con Estados Salidores
+    if not resultado_final.empty:
+        numeros_estados_salidores = resultado_final['Numero'].tolist()
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_estados_salidores), 'Puntuación Total'] += peso_estados
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_estados_salidores), 'Coincidencias'] += 1
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_estados_salidores), 'Análisis que coinciden'] += "Estados Salidores, "
+    
+    # 4. Análisis de Paridad
+    if numeros_por_paridad:
+        # Obtener las 3 paridades más salidoras
+        paridades_top = []
+        for paridad, df in numeros_por_paridad.items():
+            if not df.empty:
+                paridades_top.append((paridad, df.iloc[0]['Total_Salidas_Historico']))
+        
+        # Ordenar por frecuencia y tomar las 3 principales
+        paridades_top.sort(key=lambda x: x[1], reverse=True)
+        top_3_paridades = [p[0] for p in paridades_top[:3]]
+        
+        # Obtener números de estas paridades
+        numeros_paridades_top = []
+        for paridad in top_3_paridades:
+            if paridad in numeros_por_paridad and not numeros_por_paridad[paridad].empty:
+                numeros_paridades_top.extend(numeros_por_paridad[paridad]['Numero'].tolist())
+        
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_paridades_top), 'Puntuación Total'] += peso_paridad
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_paridades_top), 'Coincidencias'] += 1
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_paridades_top), 'Análisis que coinciden'] += "Paridad Top, "
+    
+    # 5. Análisis de Temperatura Posicional (Mapa de Calor Posicional)
+    df_hot_cold, df_cold_hot, df_hot_hot, df_cold_cold = analizar_combinaciones_extremas(
+        mapa_temp_decenas, mapa_temp_unidades, df_estados_completos)
+    
+    # Combinaciones extremas tienen mayor puntuación
+    if not df_hot_cold.empty:
+        numeros_hot_cold = [int(n) for n in df_hot_cold.head(5)['Número'].tolist()]
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_hot_cold), 'Puntuación Total'] += peso_extremos
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_hot_cold), 'Coincidencias'] += 1
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_hot_cold), 'Análisis que coinciden'] += "Caliente-Frío, "
+    
+    if not df_cold_hot.empty:
+        numeros_cold_hot = [int(n) for n in df_cold_hot.head(5)['Número'].tolist()]
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_cold_hot), 'Puntuación Total'] += peso_extremos
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_cold_hot), 'Coincidencias'] += 1
+        df_coincidencias.loc[df_coincidencias['Numero_int'].isin(numeros_cold_hot), 'Análisis que coinciden'] += "Frío-Caliente, "
+    
+    # Ordenar por puntuación total y coincidencias
+    df_coincidencias = df_coincidencias.sort_values(by=['Puntuación Total', 'Coincidencias'], ascending=False)
+    
+    # Añadir información adicional
+    df_resultado = df_coincidencias.head(top_n).merge(
+        df_estados_completos[['Numero', 'Forma_Calculada', 'Combinación Paridad', 
+                             'Estado_Numero', 'Estado_Decena', 'Estado_Unidad', 
+                             'Combinar_Estado_Actual', 'Total_Salidas_Historico']],
+        left_on='Numero_int', right_on='Numero', how='left'
+    )
+    
+    # Eliminar columnas duplicadas y reorganizar
+    df_resultado = df_resultado.drop(columns=['Numero_y'])
+    df_resultado = df_resultado.rename(columns={'Numero_x': 'Número'})
+    
+    # Reorganizar columnas para mejor visualización
+    columnas_orden = [
+        'Número', 'Puntuación Total', 'Coincidencias', 'Análisis que coinciden',
+        'Forma_Calculada', 'Combinación Paridad', 'Estado_Numero', 
+        'Estado_Decena', 'Estado_Unidad', 'Combinar_Estado_Actual', 
+        'Total_Salidas_Historico'
+    ]
+    
+    return df_resultado[columnas_orden]
+
+# --- NUEVA FUNCIÓN PARA EL EXPLORADOR DE NÚMEROS PERSONALIZADO ---
+def explorador_numeros_personalizados(numeros_ingresados, df_estados_completos):
+    """
+    Muestra información detallada de números específicos ingresados por el usuario.
+    """
+    # Convertir números ingresados a enteros y asegurarse de que estén en formato de dos dígitos
+    numeros_procesados = []
+    for num_str in numeros_ingresados:
+        try:
+            # Eliminar espacios y convertir a entero
+            num_int = int(str(num_str).strip())
+            if 0 <= num_int <= 99:
+                numeros_procesados.append(num_int)
+        except (ValueError, TypeError):
+            continue
+    
+    if not numeros_procesados:
+        return pd.DataFrame()
+    
+    # Filtrar el DataFrame para obtener solo los números ingresados
+    df_resultado = df_estados_completos[df_estados_completos['Numero'].isin(numeros_procesados)].copy()
+    
+    # Ordenar por número
+    df_resultado = df_resultado.sort_values('Numero')
+    
+    # Formatear el número como dos dígitos
+    df_resultado['Número'] = df_resultado['Numero'].apply(lambda x: f"{x:02d}")
+    
+    # Seleccionar columnas relevantes
+    columnas_relevantes = [
+        'Número', 'Forma_Calculada', 'Combinación Paridad', 'Estado_Numero', 
+        'Estado_Decena', 'Estado_Unidad', 'Combinar_Estado_Actual', 
+        'Total_Salidas_Historico', 'Salto_Numero', 'Última Aparición (Fecha)'
+    ]
+    
+    # Renombrar columnas para mayor claridad
+    df_resultado = df_resultado[columnas_relevantes].rename(columns={
+        'Forma_Calculada': 'Forma',
+        'Combinación Paridad': 'Paridad',
+        'Estado_Numero': 'Estado del Número',
+        'Estado_Decena': 'Estado de la Decena',
+        'Estado_Unidad': 'Estado de la Unidad',
+        'Combinar_Estado_Actual': 'Estado Combinado',
+        'Total_Salidas_Historico': 'Total de Salidas Histórico',
+        'Salto_Numero': 'Días de Ausencia',
+        'Última Aparición (Fecha)': 'Última Aparición'
+    })
+    
+    return df_resultado
+
 
 # --- CARGA Y PROCESAMIENTO UNIFICADO DE DATOS ---
 @st.cache_resource
@@ -1514,6 +1666,117 @@ def main():
         st.subheader(f"🏆 Top {top_n_candidatos} Números Candidatos (Puntuación Combinada Mejorada)")
         st.markdown(f"A continuación se muestran los {top_n_candidatos} números cuya suma de **Puntuación Total** (Decena + Unidad) es más alta. Esta puntuación ahora incluye la influencia de la **Temperatura** del rango de fechas seleccionado.")
         st.dataframe(top_candidatos, width='stretch', hide_index=True)
+
+        # --- NUEVA SECCIÓN: MODELO PREDICTIVO BASADO EN COINCIDENCIAS ---
+        st.markdown("---")
+        st.header("🤖 Modelo Predictivo Basado en Coincidencias")
+        st.markdown("""
+        Este análisis identifica los números con mayor potencial basándose en coincidencias entre múltiples análisis:
+        - Temperatura (números calientes)
+        - Oportunidad (números calientes y vencidos)
+        - Estados salidores
+        - Paridades más frecuentes
+        - Combinaciones extremas de temperatura posicional
+        """)
+
+        with st.sidebar:
+            st.subheader("⚙️ Configuración del Modelo Predictivo")
+            top_n_coincidencias = st.slider("Top N de números a mostrar:", min_value=5, max_value=30, value=10, step=1)
+            
+            st.markdown("**Ponderación de análisis:**")
+            peso_temperatura = st.slider("Peso Temperatura:", min_value=0, max_value=5, value=1, step=1)
+            peso_oportunidad = st.slider("Peso Oportunidad:", min_value=0, max_value=5, value=2, step=1)
+            peso_estados = st.slider("Peso Estados Salidores:", min_value=0, max_value=5, value=2, step=1)
+            peso_paridad = st.slider("Peso Paridad:", min_value=0, max_value=5, value=1, step=1)
+            peso_extremos = st.slider("Peso Combinaciones Extremas:", min_value=0, max_value=5, value=3, step=1)
+
+        if st.button("🔍 Analizar Coincidencias"):
+            df_coincidencias = analizar_coincidencias_ponderadas(
+                df_clasificacion_general, calientes_con_oportunidad, resultado_final, 
+                numeros_por_paridad, df_estados_completos, mapa_temp_decenas, mapa_temp_unidades,
+                peso_temperatura, peso_oportunidad, peso_estados, peso_paridad, peso_extremos,
+                top_n=top_n_coincidencias
+            )
+            
+            if not df_coincidencias.empty:
+                st.success(f"Se encontraron {len(df_coincidencias)} números con múltiples coincidencias.")
+                st.dataframe(df_coincidencias, width='stretch', hide_index=True)
+                
+                # Opción para ver detalles de un número específico
+                numero_detalle = st.selectbox(
+                    "Selecciona un número para ver detalles:",
+                    options=df_coincidencias['Número'].tolist()
+                )
+                
+                if numero_detalle:
+                    num_int = int(numero_detalle)
+                    detalles = df_estados_completos[df_estados_completos['Numero'] == num_int].iloc[0]
+                    
+                    st.markdown("---")
+                    st.subheader(f"📋 Detalles del Número {numero_detalle}")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Forma", detalles['Forma_Calculada'])
+                        st.metric("Paridad", detalles['Combinación Paridad'])
+                        st.metric("Estado del Número", detalles['Estado_Numero'])
+                    
+                    with col2:
+                        st.metric("Estado de la Decena", detalles['Estado_Decena'])
+                        st.metric("Estado de la Unidad", detalles['Estado_Unidad'])
+                        st.metric("Estado Combinado", detalles['Combinar_Estado_Actual'])
+                    
+                    st.markdown("---")
+                    st.subheader("📈 Historial del Número")
+                    historial_numero = df_historial[df_historial['Numero'] == num_int].tail(10)
+                    if not historial_numero.empty:
+                        historial_numero['Fecha'] = historial_numero['Fecha'].dt.strftime('%d/%m/%Y')
+                        st.dataframe(historial_numero[['Fecha', 'Tipo_Sorteo', 'Forma_Calculada']], width='stretch', hide_index=True)
+                    else:
+                        st.warning("No hay historial disponible para este número.")
+            else:
+                st.warning("No se encontraron coincidencias significativas.")
+
+        # --- NUEVA SECCIÓN: EXPLORADOR DE NÚMEROS PERSONALIZADO ---
+        st.markdown("---")
+        st.header("🔎 Explorador de Números Personalizado")
+        st.markdown("""
+        Ingresa números específicos para ver sus características detalladas.
+        Puedes ingresar los números separados por comas, espacios o uno por línea.
+        """)
+
+        # Área de texto para ingresar números
+        numeros_ingresados_texto = st.text_area(
+            "Ingresa los números (ej: 05, 12, 23, 34, 45):",
+            placeholder="Ej: 05, 12, 23, 34, 45",
+            height=100
+        )
+
+        if st.button("🔍 Analizar Números Ingresados"):
+            if numeros_ingresados_texto:
+                # Procesar los números ingresados
+                numeros_lista = [num.strip() for num in numeros_ingresados_texto.replace(',', ' ').replace('\n', ' ').split()]
+                
+                # Analizar los números
+                df_explorador = explorador_numeros_personalizados(numeros_lista, df_estados_completos)
+                
+                if not df_explorador.empty:
+                    st.success(f"Análisis de {len(df_explorador)} números:")
+                    st.dataframe(df_explorador, width='stretch', hide_index=True)
+                    
+                    # Opción de descargar los resultados
+                    csv = df_explorador.to_csv(index=False)
+                    st.download_button(
+                        label="📥 Descargar resultados como CSV",
+                        data=csv,
+                        file_name=f'analisis_numeros_{datetime.now().strftime("%Y%m%d")}.csv',
+                        mime='text/csv'
+                    )
+                else:
+                    st.warning("No se pudieron procesar los números ingresados. Asegúrate de que sean números válidos entre 00 y 99.")
+            else:
+                st.warning("Por favor, ingresa al menos un número para analizar.")
+
 
         st.markdown("---")
         st.header("🔀 Análisis de Paridad")
