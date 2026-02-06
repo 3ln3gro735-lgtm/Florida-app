@@ -1093,5 +1093,5 @@ Fecha;Sorteo;Resultado ;Decena;Unidad;Paridad D;Altura D;Forma D;Paridad U;Altur
 3/2/2026;T;52;5;2;Impar;Alto;Abierto;Par;Bajo;Abierto;3;1;Normal;Normal;Normal-Normal;AA;Normal;7;Muy Vencida;10;2;Martes;3/2/2026;T;52;;;;AltoBajo-Impar-Par;3;Normal
 3/2/2026;N;24;2;4;Par;Bajo;Abierto;Par;Bajo;Recto;4;4;Normal;Normal;Normal-Normal;AR;Normal;6;Normal;2;4;Martes;3/2/2026;N;24;;;;BajoBajo-Par-Par;1;Normal
 4/2/2026;T;40;4;0;Par;Bajo;Recto;Par;Bajo;Cerrado;3;4;Normal;Normal;Normal-Normal;RC;Muy Vencido;4;Normal;4;12;Miercoles;4/2/2026;T;40;;;;BajoBajo-Par-Par;29;Muy Vencido
-4/2/2026;N;35;3;5;Impar;Bajo;Abierto;Impar;Alto;Abierto;3;2;Normal;Normal;Normal-Normal;AA;Normal;8;Vencida;6;1;Jueves;4/2/2026;N;35;;;;BajoBajo-Par-Par;1;Normal
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;BajoAlto-Impar-Impar;6;Normal
+4/2/2026;N;35;3;5;Impar;Bajo;Abierto;Impar;Alto;Abierto;3;2;Normal;Normal;Normal-Normal;AA;Normal;8;Vencida;6;1;Miercoles;4/2/2026;N;35;;;;BajoBajo-Par-Par;1;Normal
+5/2/2026;T;54;5;4;Impar;Alto;Abierto;Par;Bajo;Recto;2;2;Normal;Normal;Normal-Normal;AR;Normal;9;Muy Vencida;17;2;Jueves;5/2/2026;T;54;;;;AltoBajo-Impar-Par;2;Normal
